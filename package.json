@@ -1,0 +1,24 @@
+{
+  "name": "request-observability",
+  "version": "1.0.0",
+  "description": "An edge-based request logging and aggregation system built with Cloudflare Workers.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://suleymanoruc01@github.com/suleymanoruc01/request-observability.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+
+  "homepage": "https://github.com/suleymanoruc01/request-observability#readme",
+  "dependencies": {
+    "wrangler": "^4.63.0"
+  }
+}
