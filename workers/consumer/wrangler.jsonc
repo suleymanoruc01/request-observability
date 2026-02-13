@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "consumer",
+  "main": "src/index.js",
+  "compatibility_date": "2026-02-05",
+
+  
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  },
+
+  "queues": {
+    "consumers": [
+      {
+        "queue": "raw-request-logs"
+      }
+    ]
+  }
+}

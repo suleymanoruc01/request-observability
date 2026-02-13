@@ -1,0 +1,7 @@
+{
+  "name": "api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-02-05",
+  "observability": { "enabled": true },
+  "compatibility_flags": ["nodejs_compat"]
+}
