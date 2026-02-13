@@ -316,7 +316,9 @@ export default function App() {
 function formatTimestamp(ts) {
   if (!ts) return "-";
 
-  const date = new Date(ts.replace(" ", "T"));
+  // Z ekleyerek UTC olduğunu söylüyoruz
+  const date = new Date(ts.replace(" ", "T") + "Z");
+  const ms = String(date.getMilliseconds()).padStart(3, "0");
 
   const formatter = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
@@ -329,13 +331,10 @@ function formatTimestamp(ts) {
     hour12: false,
   });
 
-  const parts = formatter.formatToParts(date);
+  const formatted = formatter.format(date);
 
-  const get = (type) => parts.find((p) => p.type === type)?.value;
-
-  return `${get("day")}/${get("month")}/${get("year")} - ${get("hour")}:${get("minute")}:${get("second")}`;
+  return `${formatted}.${ms}(GMT+3)`;
 }
-
 
 /* ---------------- COMPONENTS ---------------- */
 
