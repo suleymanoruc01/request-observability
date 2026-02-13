@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 /* ---------------- UTIL ---------------- */
 
@@ -10,56 +10,100 @@ function safeParse(str) {
   }
 }
 
+function PrettyJSON({ data }) {
+  return (
+    <pre style={jsonStyle}>
+      {JSON.stringify(data, null, 2)}
+    </pre>
+  );
+}
+
 /* ---------------- COMPONENT ---------------- */
 
 export default function LogDetailModal({ log, onClose }) {
+
+  const [headerFilter, setHeaderFilter] = useState("");
+
   if (!log) return null;
 
   const headers = safeParse(log.headers_json);
   const cf = safeParse(log.cf_json);
 
+
+  const filteredHeaders = Object.entries(headers).filter(([key]) =>
+    key.toLowerCase().includes(headerFilter.toLowerCase())
+  );
+
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        
-        {/* CLOSE BUTTON */}
-        <button style={closeBtnStyle} onClick={onClose}>
-          ✕
-        </button>
+
+        <button style={closeBtnStyle} onClick={onClose}>✕</button>
 
         <h2 style={titleStyle}>Request Detail</h2>
 
-        {/* SUMMARY */}
-        <Section title="Summary">
+        {/* REQUEST OVERVIEW */}
+        <Section title="Request Overview">
           <Grid>
             <Field label="Request ID" value={log.request_id} />
-            <Field label="Time" value={log.ts} />
+            <Field label="Timestamp" value={log.ts} />
             <Field label="Method" value={log.method} />
+            <Field label="URL" value={log.url} />
             <Field label="Path" value={log.path} />
             <Field label="Status" value={log.status} />
             <Field label="Latency" value={`${log.latency_ms} ms`} />
-            <Field label="Country" value={log.country} />
-            <Field label="IP" value={log.ip} />
           </Grid>
         </Section>
 
-        {/* CLOUDFLARE EDGE */}
-        <Section title="Cloudflare Edge Metadata">
+        {/* CLIENT INFO */}
+        <Section title="Client Information">
           <Grid>
-            {Object.entries(cf).map(([key, value]) => (
-              <Field key={key} label={key} value={String(value)} />
-            ))}
+            <Field label="IP Address" value={log.ip} />
+            <Field label="Country" value={log.country} />
+            <Field label="City" value={log.city} />
+            <Field label="ASN" value={cf.asn} />
+            <Field label="ISP" value={cf.asOrganization} />
+            <Field label="User Agent" value={headers["user-agent"]} />
           </Grid>
         </Section>
 
-        {/* USER AGENT */}
-        <Section title="User Agent">
-          <MonoBlock>{headers["user-agent"] || "—"}</MonoBlock>
+        {/* NETWORK & TLS */}
+        <Section title="Network & TLS">
+          <Grid>
+            <Field label="HTTP Protocol" value={cf.httpProtocol} />
+            <Field label="TLS Version" value={cf.tlsVersion} />
+            <Field label="TLS Cipher" value={cf.tlsCipher} />
+            <Field label="TCP RTT" value={cf.clientTcpRtt} />
+            <Field label="Keep Alive" value={cf.edgeRequestKeepAliveStatus} />
+          </Grid>
         </Section>
 
-        {/* HEADERS */}
+        {/* GEO LOCATION */}
+        <Section title="Geolocation (Edge)">
+          <Grid>
+            <Field label="Colo (Data Center)" value={cf.colo} />
+            <Field label="Region" value={cf.region} />
+            <Field label="Timezone" value={cf.timezone} />
+            <Field label="Latitude" value={cf.latitude} />
+            <Field label="Longitude" value={cf.longitude} />
+            <Field label="Postal Code" value={cf.postalCode} />
+          </Grid>
+        </Section>
+
+        {/* TLS DETAILS */}
+        <Section title="TLS Deep Details">
+          <PrettyJSON data={cf.tlsExportedAuthenticator} />
+        </Section>
+
+        {/* REQUEST HEADERS */}
         <Section title="Request Headers">
-          {Object.entries(headers).map(([key, value]) => (
+          <input
+            placeholder="Search header..."
+            value={headerFilter}
+            onChange={(e) => setHeaderFilter(e.target.value)}
+            style={searchStyle}
+          />
+          {filteredHeaders.map(([key, value]) => (
             <HeaderRow key={key} name={key} value={value} />
           ))}
         </Section>
@@ -69,7 +113,7 @@ export default function LogDetailModal({ log, onClose }) {
   );
 }
 
-/* ---------------- UI BUILDING BLOCKS ---------------- */
+/* ---------------- UI COMPONENTS ---------------- */
 
 function Section({ title, children }) {
   return (
@@ -93,14 +137,6 @@ function Field({ label, value }) {
   );
 }
 
-function MonoBlock({ children }) {
-  return (
-    <div style={monoStyle}>
-      {children}
-    </div>
-  );
-}
-
 function HeaderRow({ name, value }) {
   return (
     <div style={headerRowStyle}>
@@ -115,8 +151,8 @@ function HeaderRow({ name, value }) {
 const overlayStyle = {
   position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.45)",
-  backdropFilter: "blur(4px)",
+  background: "rgba(0,0,0,0.55)",
+  backdropFilter: "blur(6px)",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
@@ -124,14 +160,14 @@ const overlayStyle = {
 };
 
 const modalStyle = {
-  background: "#ffffff",
-  width: "75%",
-  maxWidth: "1000px",
-  maxHeight: "85vh",
+  background: "#fff",
+  width: "80%",
+  maxWidth: "1100px",
+  maxHeight: "90vh",
   overflowY: "auto",
   padding: "40px",
-  borderRadius: "20px",
-  boxShadow: "0 30px 80px rgba(0,0,0,0.25)",
+  borderRadius: "24px",
+  boxShadow: "0 40px 100px rgba(0,0,0,0.3)",
   position: "relative",
 };
 
@@ -139,7 +175,6 @@ const titleStyle = {
   marginBottom: 30,
   fontSize: 26,
   fontWeight: 700,
-  color: "#111",
 };
 
 const closeBtnStyle = {
@@ -152,13 +187,12 @@ const closeBtnStyle = {
   borderRadius: 8,
   padding: "6px 12px",
   cursor: "pointer",
-  fontSize: 14,
 };
 
 const sectionStyle = {
-  background: "#f9fafb",
+  background: "#f8fafc",
   padding: 24,
-  borderRadius: 16,
+  borderRadius: 18,
   marginBottom: 30,
 };
 
@@ -166,7 +200,6 @@ const sectionTitle = {
   marginBottom: 20,
   fontSize: 18,
   fontWeight: 600,
-  color: "#111",
 };
 
 const gridStyle = {
@@ -183,39 +216,42 @@ const fieldStyle = {
 const fieldLabel = {
   fontSize: 12,
   color: "#6b7280",
-  marginBottom: 6,
 };
 
 const fieldValue = {
   fontSize: 14,
   fontWeight: 500,
-  color: "#111",
   wordBreak: "break-word",
 };
 
-const monoStyle = {
-  fontFamily: "monospace",
-  background: "#111",
-  color: "#0f0",
-  padding: 14,
-  borderRadius: 10,
-  fontSize: 13,
-  overflowX: "auto",
-};
-
 const headerRowStyle = {
-  marginBottom: 12,
-  paddingBottom: 10,
+  marginBottom: 10,
+  paddingBottom: 8,
   borderBottom: "1px solid #e5e7eb",
 };
 
 const headerKey = {
   fontWeight: 600,
-  color: "#111",
 };
 
 const headerValue = {
   fontSize: 13,
-  color: "#374151",
   wordBreak: "break-word",
+};
+
+const searchStyle = {
+  width: "100%",
+  padding: 8,
+  marginBottom: 15,
+  borderRadius: 8,
+  border: "1px solid #ddd",
+};
+
+const jsonStyle = {
+  background: "#111",
+  color: "#0f0",
+  padding: 16,
+  borderRadius: 12,
+  fontSize: 12,
+  overflowX: "auto",
 };

@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
-import LogDetailModal from "./components/LogDetailModal";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import "./App.css";
+import LogDetailModal from "./components/LogDetailModal";
 
 const API_URL = "https://api.suleymanoruc00.workers.dev/logs";
 
@@ -19,24 +11,76 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
 
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [pathFilter, setPathFilter] = useState("");
+  /* ---------------- INITIAL LOAD + POLLING ---------------- */
 
-  /* ---------------- FETCH ---------------- */
+  useEffect(() => {
+    let isMounted = true;
+    let isFetching = false;
 
-  const fetchLogs = async (cursor = null, append = false) => {
-    if (loading) return;
+    const fetchInitial = async () => {
+      try {
+        const res = await fetch(`${API_URL}?limit=10`);
+        const data = await res.json();
+
+        if (!isMounted) return;
+
+        setLogs(data.data);
+        setNextCursor(data.next_cursor || null);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const polling = async () => {
+      if (isFetching) return;
+      isFetching = true;
+
+      try {
+        const res = await fetch(`${API_URL}?limit=10`);
+        const data = await res.json();
+
+        if (!isMounted) return;
+
+        setLogs((prevLogs) => {
+          const existingIds = new Set(prevLogs.map((l) => l.request_id));
+
+          const uniqueNewLogs = data.data.filter((log) => !existingIds.has(log.request_id));
+
+          if (uniqueNewLogs.length === 0) return prevLogs;
+
+          const merged = [...uniqueNewLogs, ...prevLogs];
+
+          // sliding window → mevcut gösterim kadar tut
+          return merged.slice(0, prevLogs.length);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+
+      isFetching = false;
+    };
+
+    fetchInitial();
+    const interval = setInterval(polling, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []); // ❗ displayLimit kaldırıldı
+
+  /* ---------------- LOAD MORE ---------------- */
+
+  const fetchMore = async () => {
+    if (!nextCursor || loading) return;
+
     setLoading(true);
 
     try {
-      const url = cursor
-        ? `${API_URL}?limit=20&cursor=${encodeURIComponent(cursor)}`
-        : `${API_URL}?limit=20`;
-
-      const res = await fetch(url);
+      const res = await fetch(`${API_URL}?limit=10&cursor=${encodeURIComponent(nextCursor)}`);
       const data = await res.json();
 
-      setLogs((prev) => (append ? [...prev, ...data.data] : data.data));
+      setLogs((prev) => [...prev, ...data.data]);
       setNextCursor(data.next_cursor || null);
     } catch (err) {
       console.error(err);
@@ -44,52 +88,6 @@ export default function App() {
 
     setLoading(false);
   };
-
-  /* ---------------- INITIAL LOAD + REALTIME ---------------- */
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const load = async () => {
-      try {
-        const res = await fetch(`${API_URL}?limit=20`, {
-          signal: controller.signal,
-        });
-        const data = await res.json();
-        setLogs(data.data);
-        setNextCursor(data.next_cursor || null);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error(err);
-        }
-      }
-    };
-
-    load();
-
-    const interval = setInterval(load, 5000);
-
-    return () => {
-      controller.abort();
-      clearInterval(interval);
-    };
-  }, []);
-
-  /* ---------------- FILTERING ---------------- */
-
-  const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const matchStatus =
-        statusFilter === "ALL" ||
-        log.status.toString().startsWith(statusFilter);
-
-      const matchPath =
-        pathFilter === "" ||
-        log.path.toLowerCase().includes(pathFilter.toLowerCase());
-
-      return matchStatus && matchPath;
-    });
-  }, [logs, statusFilter, pathFilter]);
 
   /* ---------------- STATUS COUNTS ---------------- */
 
@@ -106,6 +104,59 @@ export default function App() {
     return counts;
   }, [logs]);
 
+  /* ---------------- PATH METRICS ---------------- */
+
+  const pathMetrics = useMemo(() => {
+    const stats = {};
+
+    logs.forEach((log) => {
+      if (!stats[log.path]) {
+        stats[log.path] = {
+          total: 0,
+          errors: 0,
+          latencies: [],
+        };
+      }
+
+      stats[log.path].total++;
+
+      if (log.status >= 400) {
+        stats[log.path].errors++;
+      }
+
+      stats[log.path].latencies.push(log.latency_ms);
+    });
+
+    return Object.entries(stats)
+      .map(([path, data]) => {
+        const sortedLatencies = [...data.latencies].sort((a, b) => a - b);
+
+        const avgLatency = data.latencies.reduce((sum, val) => sum + val, 0) / data.latencies.length;
+
+        const minLatency = sortedLatencies[0];
+        const maxLatency = sortedLatencies[sortedLatencies.length - 1];
+
+        const p95Index = Math.floor(sortedLatencies.length * 0.95) - 1;
+        const p95Latency = sortedLatencies[Math.max(0, p95Index)];
+
+        return {
+          path,
+          total: data.total,
+          errors: data.errors,
+          errorRate: data.total ? ((data.errors / data.total) * 100).toFixed(1) : 0,
+          avgLatency: Math.round(avgLatency),
+          minLatency,
+          maxLatency,
+          p95Latency,
+        };
+      })
+      .sort((a, b) => {
+        if (a.path === "/") return -1;
+        if (b.path === "/") return 1;
+        return a.path.localeCompare(b.path);
+      });
+  }, [logs]);
+
   const chartData = [
     { name: "2xx", value: statusCounts[2], color: "#2ecc71" },
     { name: "3xx", value: statusCounts[3], color: "#f1c40f" },
@@ -113,55 +164,19 @@ export default function App() {
     { name: "5xx", value: statusCounts[5], color: "#e74c3c" },
   ];
 
-  /* ---------------- PATH METRICS ---------------- */
-
-  const pathErrorRate = useMemo(() => {
-    const stats = {};
-
-    logs.forEach((log) => {
-      if (!stats[log.path]) {
-        stats[log.path] = { total: 0, errors: 0 };
-      }
-
-      stats[log.path].total++;
-      if (log.status >= 400) stats[log.path].errors++;
-    });
-
-    return Object.entries(stats).map(([path, data]) => ({
-      path,
-      total: data.total,
-      errors: data.errors,
-      errorRate: ((data.errors / data.total) * 100).toFixed(1),
-    }));
-  }, [logs]);
-
-  const pathDistribution = useMemo(() => {
-    const counts = {};
-
-    logs.forEach((log) => {
-      if (!counts[log.path]) counts[log.path] = 0;
-      counts[log.path]++;
-    });
-
-    return Object.entries(counts).map(([path, count]) => ({
-      path,
-      count,
-    }));
-  }, [logs]);
-
   return (
-    <div style={{ padding: "40px", background: "#f3f4f6", minHeight: "100vh", color: "#000",  }}>
+    <div style={{ padding: 40, background: "#f3f4f6", minHeight: "100vh" }}>
       <h1 style={{ marginBottom: 30 }}>Request Observability Dashboard</h1>
 
       {/* STATUS CARDS */}
       <div style={{ display: "flex", gap: 15, marginBottom: 25 }}>
-        <StatusCard color="#2ecc71" label="2xx" count={statusCounts[2]} />2
+        <StatusCard color="#2ecc71" label="2xx" count={statusCounts[2]} />
         <StatusCard color="#f1c40f" label="3xx" count={statusCounts[3]} />
         <StatusCard color="#e67e22" label="4xx" count={statusCounts[4]} />
         <StatusCard color="#e74c3c" label="5xx" count={statusCounts[5]} />
       </div>
 
-      {/* STATUS BAR CHART */}
+      {/* CHART */}
       <div style={{ width: "100%", height: 250, marginBottom: 40 }}>
         <ResponsiveContainer>
           <BarChart data={chartData}>
@@ -177,64 +192,55 @@ export default function App() {
         </ResponsiveContainer>
       </div>
 
-      {/* PATH METRICS */}
-      <h3>Path Metrics</h3>
-      <table border="1" cellPadding="8" style={{ marginBottom: 40, width: "100%" }}>
-        <thead>
-          <tr>
-            <th>Path</th>
-            <th>Total</th>
-            <th>Errors</th>
-            <th>Error %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pathErrorRate.map((p) => (
-            <tr key={p.path}>
-              <td>{p.path}</td>
-              <td>{p.total}</td>
-              <td>{p.errors}</td>
-              <td style={{ color: p.errorRate > 20 ? "red" : "black" }}>
-                {p.errorRate}%
-              </td>
+      {/* PATH DISTRIBUTION & ERROR RATE */}
+      <h2 style={{ marginBottom: 20 }}>Path Metrics</h2>
+
+      <div style={pathTableContainer}>
+        <table style={pathTable}>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Total</th>
+              <th>Errors</th>
+              <th>Error %</th>
+              <th>Avg (ms)</th>
+              <th>P95 (ms)</th>
+              <th>Min</th>
+              <th>Max</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {pathMetrics.map((item) => (
+              <tr key={item.path}>
+                <td style={{ fontWeight: 600 }}>{item.path}</td>
+                <td>{item.total}</td>
+                <td style={{ color: item.errors > 0 ? "#e74c3c" : "#2ecc71" }}>{item.errors}</td>
+                <td
+                  style={{
+                    color: item.errorRate > 20 ? "#e74c3c" : item.errorRate > 5 ? "#f39c12" : "#2ecc71",
+                    fontWeight: 600,
+                  }}
+                >
+                  {item.errorRate}%
+                </td>
 
-      {/* PATH TRAFFIC */}
-      <h3>Path Traffic</h3>
-      <div style={{ width: "100%", height: 300, marginBottom: 40 }}>
-        <ResponsiveContainer>
-          <BarChart data={pathDistribution}>
-            <XAxis dataKey="path" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" fill="#3b82f6" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+                <td>{item.avgLatency}</td>
 
-      {/* FILTERS */}
-      <div style={{ marginBottom: 20 }}>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="ALL">All Status</option>
-          <option value="2">2xx</option>
-          <option value="3">3xx</option>
-          <option value="4">4xx</option>
-          <option value="5">5xx</option>
-        </select>
+                <td
+                  style={{
+                    color: item.p95Latency > 500 ? "#e74c3c" : item.p95Latency > 200 ? "#f39c12" : "#2ecc71",
+                    fontWeight: 600,
+                  }}
+                >
+                  {item.p95Latency}
+                </td>
 
-        <input
-          type="text"
-          placeholder="Filter by path..."
-          value={pathFilter}
-          onChange={(e) => setPathFilter(e.target.value)}
-          style={{ marginLeft: 10 }}
-        />
+                <td>{item.minLatency}</td>
+                <td>{item.maxLatency}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* TABLE */}
@@ -251,12 +257,8 @@ export default function App() {
           </tr>
         </thead>
         <tbody>
-          {filteredLogs.map((log) => (
-            <tr
-              key={log.request_id}
-              style={{ cursor: "pointer" }}
-              onClick={() => setSelectedLog(log)}
-            >
+          {logs.map((log) => (
+            <tr key={log.request_id} style={{ cursor: "pointer" }} onClick={() => setSelectedLog(log)}>
               <td>{log.ts}</td>
               <td>{log.method}</td>
               <td>{log.path}</td>
@@ -273,21 +275,11 @@ export default function App() {
 
       {/* LOAD MORE */}
       <div style={{ marginTop: 20, textAlign: "center" }}>
-        <button
-          onClick={() => fetchLogs(nextCursor, true)}
-          disabled={!nextCursor || loading}
-        >
+        <button onClick={fetchMore} disabled={!nextCursor || loading}>
           {loading ? "Loading..." : "Load More"}
         </button>
       </div>
-
-      {/* DETAIL MODAL */}
-      {selectedLog && (
-        <LogDetailModal
-          log={selectedLog}
-          onClose={() => setSelectedLog(null)}
-        />
-      )}
+      {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
     </div>
   );
 }
@@ -314,14 +306,7 @@ function StatusCard({ color, label, count }) {
 }
 
 function StatusBadge({ status }) {
-  const color =
-    status >= 500
-      ? "#e74c3c"
-      : status >= 400
-      ? "#f39c12"
-      : status >= 300
-      ? "#3498db"
-      : "#2ecc71";
+  const color = status >= 500 ? "#e74c3c" : status >= 400 ? "#f39c12" : status >= 300 ? "#3498db" : "#2ecc71";
 
   return (
     <span
@@ -338,3 +323,28 @@ function StatusBadge({ status }) {
     </span>
   );
 }
+
+const pathTableContainer = {
+  background: "#fff",
+  padding: 20,
+  borderRadius: 16,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+  marginBottom: 40,
+};
+
+const pathTable = {
+  width: "100%",
+  borderCollapse: "collapse",
+};
+
+// const progressBarOuter = {
+//   height: 10,
+//   background: "#e5e7eb",
+//   borderRadius: 8,
+//   overflow: "hidden",
+// };
+
+// const progressBarInner = {
+//   height: "100%",
+//   transition: "width 0.3s ease",
+// };
