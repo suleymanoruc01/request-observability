@@ -11,17 +11,12 @@ function safeParse(str) {
 }
 
 function PrettyJSON({ data }) {
-  return (
-    <pre style={jsonStyle}>
-      {JSON.stringify(data, null, 2)}
-    </pre>
-  );
+  return <pre style={jsonStyle}>{JSON.stringify(data, null, 2)}</pre>;
 }
 
 /* ---------------- COMPONENT ---------------- */
 
 export default function LogDetailModal({ log, onClose }) {
-
   const [headerFilter, setHeaderFilter] = useState("");
 
   if (!log) return null;
@@ -29,16 +24,16 @@ export default function LogDetailModal({ log, onClose }) {
   const headers = safeParse(log.headers_json);
   const cf = safeParse(log.cf_json);
 
-
   const filteredHeaders = Object.entries(headers).filter(([key]) =>
-    key.toLowerCase().includes(headerFilter.toLowerCase())
+    key.toLowerCase().includes(headerFilter.toLowerCase()),
   );
 
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-
-        <button style={closeBtnStyle} onClick={onClose}>✕</button>
+        <button style={closeBtnStyle} onClick={onClose}>
+          ✕
+        </button>
 
         <h2 style={titleStyle}>Request Detail</h2>
 
@@ -107,7 +102,6 @@ export default function LogDetailModal({ log, onClose }) {
             <HeaderRow key={key} name={key} value={value} />
           ))}
         </Section>
-
       </div>
     </div>
   );
@@ -161,7 +155,7 @@ const overlayStyle = {
 
 const modalStyle = {
   background: "#fff",
-  width: "80%",
+  width: "95%",
   maxWidth: "1100px",
   maxHeight: "90vh",
   overflowY: "auto",
@@ -204,7 +198,7 @@ const sectionTitle = {
 
 const gridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
+  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
   gap: 20,
 };
 

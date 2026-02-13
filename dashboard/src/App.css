@@ -3,6 +3,7 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  color-scheme: light;
 }
 
 .logo {
@@ -58,4 +59,13 @@
 
 .read-the-docs {
   color: #888;
+}
+
+html, body {
+  background-color: #f3f4f6;
+  color: #111;
+}
+
+:root {
+  color-scheme: light;
 }

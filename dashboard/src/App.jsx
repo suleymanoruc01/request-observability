@@ -165,121 +165,126 @@ export default function App() {
   ];
 
   return (
-    <div style={{ padding: 40, background: "#f3f4f6", minHeight: "100vh" }}>
-      <h1 style={{ marginBottom: 30 }}>Request Observability Dashboard</h1>
+    <div style={pageWrapper}>
+      <div style={pageContainer}>
+        <h1 style={{ marginBottom: 30 }}>Request Observability Dashboard</h1>
 
-      {/* STATUS CARDS */}
-      <div style={{ display: "flex", gap: 15, marginBottom: 25 }}>
-        <StatusCard color="#2ecc71" label="2xx" count={statusCounts[2]} />
-        <StatusCard color="#f1c40f" label="3xx" count={statusCounts[3]} />
-        <StatusCard color="#e67e22" label="4xx" count={statusCounts[4]} />
-        <StatusCard color="#e74c3c" label="5xx" count={statusCounts[5]} />
-      </div>
+        {/* STATUS CARDS */}
+        <div style={{ display: "flex", gap: 15, marginBottom: 25 }}>
+          <StatusCard color="#2ecc71" label="2xx" count={statusCounts[2]} />
+          <StatusCard color="#f1c40f" label="3xx" count={statusCounts[3]} />
+          <StatusCard color="#e67e22" label="4xx" count={statusCounts[4]} />
+          <StatusCard color="#e74c3c" label="5xx" count={statusCounts[5]} />
+        </div>
 
-      {/* CHART */}
-      <div style={{ width: "100%", height: 250, marginBottom: 40 }}>
-        <ResponsiveContainer>
-          <BarChart data={chartData}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="value">
-              {chartData.map((entry, index) => (
-                <Cell key={index} fill={entry.color} />
+        {/* CHART */}
+        <div style={{ width: "100%", height: 250, marginBottom: 40 }}>
+          <ResponsiveContainer>
+            <BarChart data={chartData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value">
+                {chartData.map((entry, index) => (
+                  <Cell key={index} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* PATH DISTRIBUTION & ERROR RATE */}
+        <h2 style={{ marginBottom: 20 }}>Path Metrics</h2>
+
+        <div style={pathTableContainer}>
+          <table style={pathTable}>
+            <thead>
+              <tr>
+                <th>Path</th>
+                <th>Total</th>
+                <th>Errors</th>
+                <th>Error %</th>
+                <th>Avg (ms)</th>
+                <th>P95 (ms)</th>
+                <th>Min</th>
+                <th>Max</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pathMetrics.map((item) => (
+                <tr key={item.path}>
+                  <td style={{ fontWeight: 600 }}>{item.path}</td>
+                  <td>{item.total}</td>
+                  <td style={{ color: item.errors > 0 ? "#e74c3c" : "#2ecc71" }}>{item.errors}</td>
+                  <td
+                    style={{
+                      color: item.errorRate > 20 ? "#e74c3c" : item.errorRate > 5 ? "#f39c12" : "#2ecc71",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {item.errorRate}%
+                  </td>
+
+                  <td>{item.avgLatency}</td>
+
+                  <td
+                    style={{
+                      color: item.p95Latency > 500 ? "#e74c3c" : item.p95Latency > 200 ? "#f39c12" : "#2ecc71",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {item.p95Latency}
+                  </td>
+
+                  <td>{item.minLatency}</td>
+                  <td>{item.maxLatency}</td>
+                </tr>
               ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+            </tbody>
+          </table>
+        </div>
 
-      {/* PATH DISTRIBUTION & ERROR RATE */}
-      <h2 style={{ marginBottom: 20 }}>Path Metrics</h2>
+        {/* TABLE */}
+       <div style={{ overflowX: "auto" }}>
+  <table border="1" cellPadding="8" style={{ width: "100%", minWidth: 800 }}>
 
-      <div style={pathTableContainer}>
-        <table style={pathTable}>
           <thead>
             <tr>
+              <th>Time</th>
+              <th>Method</th>
               <th>Path</th>
-              <th>Total</th>
-              <th>Errors</th>
-              <th>Error %</th>
-              <th>Avg (ms)</th>
-              <th>P95 (ms)</th>
-              <th>Min</th>
-              <th>Max</th>
+              <th>Status</th>
+              <th>Latency</th>
+              <th>Country</th>
+              <th>IP</th>
             </tr>
           </thead>
           <tbody>
-            {pathMetrics.map((item) => (
-              <tr key={item.path}>
-                <td style={{ fontWeight: 600 }}>{item.path}</td>
-                <td>{item.total}</td>
-                <td style={{ color: item.errors > 0 ? "#e74c3c" : "#2ecc71" }}>{item.errors}</td>
-                <td
-                  style={{
-                    color: item.errorRate > 20 ? "#e74c3c" : item.errorRate > 5 ? "#f39c12" : "#2ecc71",
-                    fontWeight: 600,
-                  }}
-                >
-                  {item.errorRate}%
+            {logs.map((log) => (
+              <tr key={log.request_id} style={{ cursor: "pointer" }} onClick={() => setSelectedLog(log)}>
+                <td>{log.ts}</td>
+                <td>{log.method}</td>
+                <td>{log.path}</td>
+                <td>
+                  <StatusBadge status={log.status} />
                 </td>
-
-                <td>{item.avgLatency}</td>
-
-                <td
-                  style={{
-                    color: item.p95Latency > 500 ? "#e74c3c" : item.p95Latency > 200 ? "#f39c12" : "#2ecc71",
-                    fontWeight: 600,
-                  }}
-                >
-                  {item.p95Latency}
-                </td>
-
-                <td>{item.minLatency}</td>
-                <td>{item.maxLatency}</td>
+                <td>{log.latency_ms}</td>
+                <td>{log.country}</td>
+                <td>{log.ip}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
 
-      {/* TABLE */}
-      <table border="1" cellPadding="8" style={{ width: "100%" }}>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Method</th>
-            <th>Path</th>
-            <th>Status</th>
-            <th>Latency</th>
-            <th>Country</th>
-            <th>IP</th>
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((log) => (
-            <tr key={log.request_id} style={{ cursor: "pointer" }} onClick={() => setSelectedLog(log)}>
-              <td>{log.ts}</td>
-              <td>{log.method}</td>
-              <td>{log.path}</td>
-              <td>
-                <StatusBadge status={log.status} />
-              </td>
-              <td>{log.latency_ms}</td>
-              <td>{log.country}</td>
-              <td>{log.ip}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* LOAD MORE */}
-      <div style={{ marginTop: 20, textAlign: "center" }}>
-        <button onClick={fetchMore} disabled={!nextCursor || loading}>
-          {loading ? "Loading..." : "Load More"}
-        </button>
+        {/* LOAD MORE */}
+        <div style={{ marginTop: 20, textAlign: "center" }}>
+          <button onClick={fetchMore} disabled={!nextCursor || loading}>
+            {loading ? "Loading..." : "Load More"}
+          </button>
+        </div>
+        {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
       </div>
-      {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
     </div>
   );
 }
@@ -336,6 +341,22 @@ const pathTable = {
   width: "100%",
   borderCollapse: "collapse",
 };
+
+const pageWrapper = {
+  background: "#f3f4f6",
+  minHeight: "100vh",
+  padding: "40px 20px",
+  display: "flex",
+  justifyContent: "center",
+  color: "#111", // 🔥 sabitle
+};
+
+
+const pageContainer = {
+  width: "100%",
+  maxWidth: "1200px",
+};
+
 
 // const progressBarOuter = {
 //   height: 10,
