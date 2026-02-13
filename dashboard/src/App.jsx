@@ -245,41 +245,55 @@ export default function App() {
         </div>
 
         {/* TABLE */}
-       <div style={{ overflowX: "auto" }}>
-  <table border="1" cellPadding="8" style={{ width: "100%", minWidth: 800 }}>
-
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Method</th>
-              <th>Path</th>
-              <th>Status</th>
-              <th>Latency</th>
-              <th>Country</th>
-              <th>IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.request_id} style={{ cursor: "pointer" }} onClick={() => setSelectedLog(log)}>
-                <td>{log.ts}</td>
-                <td>{log.method}</td>
-                <td>{log.path}</td>
-                <td>
-                  <StatusBadge status={log.status} />
-                </td>
-                <td>{log.latency_ms}</td>
-                <td>{log.country}</td>
-                <td>{log.ip}</td>
+        <div style={{ overflowX: "auto" }}>
+          <table border="1" cellPadding="8" style={{ width: "100%", minWidth: 800 }}>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Status</th>
+                <th>Latency</th>
+                <th>Country</th>
+                <th>IP</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.request_id} style={{ cursor: "pointer" }} onClick={() => setSelectedLog(log)}>
+                  <td>{log.ts}</td>
+                  <td>{log.method}</td>
+                  <td>{log.path}</td>
+                  <td>
+                    <StatusBadge status={log.status} />
+                  </td>
+                  <td>{log.latency_ms}</td>
+                  <td>{log.country}</td>
+                  <td>{log.ip}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* LOAD MORE */}
         <div style={{ marginTop: 20, textAlign: "center" }}>
-          <button onClick={fetchMore} disabled={!nextCursor || loading}>
+          <button
+            className="load-more-btn"
+            onClick={fetchMore}
+            disabled={!nextCursor || loading}
+            style={{
+              background: loading || !nextCursor ? "#ccc" : "#111",
+              color: "#fff",
+              border: "none",
+              padding: "12px 28px",
+              borderRadius: 10,
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: loading || !nextCursor ? "not-allowed" : "pointer",
+              transition: "all 0.2s ease",
+            }}
+          >
             {loading ? "Loading..." : "Load More"}
           </button>
         </div>
@@ -351,12 +365,10 @@ const pageWrapper = {
   color: "#111", // 🔥 sabitle
 };
 
-
 const pageContainer = {
   width: "100%",
   maxWidth: "1200px",
 };
-
 
 // const progressBarOuter = {
 //   height: 10,
