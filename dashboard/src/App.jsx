@@ -6,16 +6,16 @@ import LogDetailModal from "./components/LogDetailModal";
 const API_URL = "https://api.suleymanoruc00.workers.dev/logs";
 
 export default function App() {
-  const [logs, setLogs] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
+  const [allLogs, setAllLogs] = useState([]);
+  const [displayLimit, setDisplayLimit] = useState(10);
 
   /* ---------------- INITIAL LOAD + POLLING ---------------- */
 
   useEffect(() => {
     let isMounted = true;
-    let isFetching = false;
 
     const fetchInitial = async () => {
       try {
@@ -24,50 +24,42 @@ export default function App() {
 
         if (!isMounted) return;
 
-        setLogs(data.data);
+        setAllLogs(data.data);
         setNextCursor(data.next_cursor || null);
       } catch (err) {
         console.error(err);
       }
     };
 
-    const polling = async () => {
-      if (isFetching) return;
-      isFetching = true;
+    fetchInitial();
 
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
       try {
         const res = await fetch(`${API_URL}?limit=10`);
         const data = await res.json();
 
-        if (!isMounted) return;
-
-        setLogs((prevLogs) => {
-          const existingIds = new Set(prevLogs.map((l) => l.request_id));
+        setAllLogs((prev) => {
+          const existingIds = new Set(prev.map((l) => l.request_id));
 
           const uniqueNewLogs = data.data.filter((log) => !existingIds.has(log.request_id));
 
-          if (uniqueNewLogs.length === 0) return prevLogs;
+          if (uniqueNewLogs.length === 0) return prev;
 
-          const merged = [...uniqueNewLogs, ...prevLogs];
-
-          // sliding window → mevcut gösterim kadar tut
-          return merged.slice(0, prevLogs.length);
+          return [...uniqueNewLogs, ...prev];
         });
       } catch (err) {
         console.error(err);
       }
+    }, 5000);
 
-      isFetching = false;
-    };
-
-    fetchInitial();
-    const interval = setInterval(polling, 5000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []); // ❗ displayLimit kaldırıldı
+    return () => clearInterval(interval);
+  }, []);
 
   /* ---------------- LOAD MORE ---------------- */
 
@@ -80,7 +72,8 @@ export default function App() {
       const res = await fetch(`${API_URL}?limit=10&cursor=${encodeURIComponent(nextCursor)}`);
       const data = await res.json();
 
-      setLogs((prev) => [...prev, ...data.data]);
+      setAllLogs((prev) => [...prev, ...data.data]);
+      setDisplayLimit((prev) => prev + 10);
       setNextCursor(data.next_cursor || null);
     } catch (err) {
       console.error(err);
@@ -88,6 +81,10 @@ export default function App() {
 
     setLoading(false);
   };
+
+  const logs = useMemo(() => {
+    return allLogs.slice(0, displayLimit);
+  }, [allLogs, displayLimit]);
 
   /* ---------------- STATUS COUNTS ---------------- */
 
@@ -256,12 +253,13 @@ export default function App() {
                 <th>Latency</th>
                 <th>Country</th>
                 <th>IP</th>
+                <th>Detail</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((log) => (
-                <tr key={log.request_id} style={{ cursor: "pointer" }} onClick={() => setSelectedLog(log)}>
-                  <td>{log.ts}</td>
+                <tr key={log.request_id}>
+                  <td>{formatTimestamp(log.ts)}</td>
                   <td>{log.method}</td>
                   <td>{log.path}</td>
                   <td>
@@ -270,6 +268,18 @@ export default function App() {
                   <td>{log.latency_ms}</td>
                   <td>{log.country}</td>
                   <td>{log.ip}</td>
+                  <td>
+                    <span
+                      style={{
+                        color: "#3b82f6",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setSelectedLog(log)}
+                    >
+                      Detail
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -301,6 +311,23 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+function formatTimestamp(ts) {
+  if (!ts) return "-";
+
+  const date = new Date(ts.replace(" ", "T"));
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
+
+  return `${day}/${month}/${year} - ${hours}:${minutes}:${seconds} - ${milliseconds}`;
 }
 
 /* ---------------- COMPONENTS ---------------- */
