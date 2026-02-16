@@ -18,5 +18,10 @@
         "queue": "raw-request-logs"
       }
     ]
+  },
+  "triggers": {
+    "crons": ["*/2 * * * *"]
   }
 }
+
+
