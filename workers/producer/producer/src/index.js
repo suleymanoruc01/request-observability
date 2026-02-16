@@ -47,8 +47,12 @@ export default {
 			timing,
 		};
 
-		// 🚚 QUEUE'YA GÖNDER
-		await env.RAW_LOG_QUEUE.send(rawLog);
+		try {
+			await env.RAW_LOG_QUEUE.send(rawLog);
+			console.log('QUEUE SEND SUCCESS');
+		} catch (err) {
+			console.error('QUEUE SEND ERROR:', err);
+		}
 
 		return response;
 	},

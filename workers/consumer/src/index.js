@@ -26,7 +26,7 @@ export default {
 			});
 		}
 
-		// ClickHouse JSONEachRow format
+
 		const payload = rows.map((r) => JSON.stringify(r)).join('\n');
 
 		const insertUrl = `https://${env.CLICKHOUSE_HOST}:8443/` + `?query=INSERT INTO observability.raw_request_logs FORMAT JSONEachRow`;
@@ -46,28 +46,26 @@ export default {
 			console.error('ClickHouse insert failed:', errorText);
 			throw new Error('ClickHouse insert failed');
 		}
-
-		// ACK only after successful insert
 		for (const message of batch.messages) {
 			message.ack();
 		}
 	},
 
-	async scheduled(event, env, ctx) {
-		console.log('Consumer cron warm ping');
+	// async scheduled(event, env, ctx) {
+	// 	console.log('Consumer cron warm ping');
 
-		try {
-			await fetch(`https://${env.CLICKHOUSE_HOST}:8443/`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'text/plain',
-					'X-ClickHouse-User': env.CLICKHOUSE_USER,
-					'X-ClickHouse-Key': env.CLICKHOUSE_PASSWORD,
-				},
-				body: 'SELECT 1',
-			});
-		} catch (err) {
-			console.error('ClickHouse warm error:', err);
-		}
-	},
+	// 	try {
+	// 		await fetch(`https://${env.CLICKHOUSE_HOST}:8443/`, {
+	// 			method: 'POST',
+	// 			headers: {
+	// 				'Content-Type': 'text/plain',
+	// 				'X-ClickHouse-User': env.CLICKHOUSE_USER,
+	// 				'X-ClickHouse-Key': env.CLICKHOUSE_PASSWORD,
+	// 			},
+	// 			body: 'SELECT 1',
+	// 		});
+	// 	} catch (err) {
+	// 		console.error('ClickHouse warm error:', err);
+	// 	}
+	// },
 };
