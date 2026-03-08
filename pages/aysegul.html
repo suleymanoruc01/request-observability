@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Kadınlar Günün Kutlu Olsun</title>
+
+<style>
+
+:root{
+--bg1:#160b1d;
+--bg2:#2a1236;
+--bg3:#4a1f4f;
+--gold:#ffd7a8;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Inter,system-ui,sans-serif;
+color:white;
+overflow:hidden;
+height:100vh;
+
+background:
+radial-gradient(circle at 20% 20%, rgba(255,111,181,.15), transparent 25%),
+radial-gradient(circle at 80% 30%, rgba(255,215,168,.1), transparent 20%),
+linear-gradient(135deg,var(--bg1),var(--bg2) 45%,var(--bg3));
+}
+
+/* yıldızlar */
+
+.stars{
+position:absolute;
+inset:0;
+background-image:
+radial-gradient(circle, rgba(255,255,255,.9) 1px, transparent 1.5px);
+background-size:200px 200px;
+opacity:.35;
+animation:starsMove 40s linear infinite;
+}
+
+@keyframes starsMove{
+from{background-position:0 0}
+to{background-position:400px 400px}
+}
+
+/* gül yaprakları */
+
+.petals{
+position:absolute;
+inset:0;
+pointer-events:none;
+overflow:hidden;
+}
+
+.petal{
+position:absolute;
+top:-50px;
+font-size:22px;
+opacity:.9;
+animation:fall linear infinite;
+}
+
+@keyframes fall{
+
+0%{
+transform:translateY(-100px) rotate(0deg);
+}
+
+100%{
+transform:translateY(110vh) rotate(360deg);
+}
+
+}
+
+/* farklı hız ve konumlar */
+
+.petal:nth-child(1){left:5%;animation-duration:8s;}
+.petal:nth-child(2){left:15%;animation-duration:9s;}
+.petal:nth-child(3){left:25%;animation-duration:7s;}
+.petal:nth-child(4){left:35%;animation-duration:10s;}
+.petal:nth-child(5){left:45%;animation-duration:8s;}
+.petal:nth-child(6){left:55%;animation-duration:9s;}
+.petal:nth-child(7){left:65%;animation-duration:7s;}
+.petal:nth-child(8){left:75%;animation-duration:10s;}
+.petal:nth-child(9){left:85%;animation-duration:8s;}
+.petal:nth-child(10){left:95%;animation-duration:9s;}
+
+/* notlar */
+
+.note{
+position:absolute;
+width:230px;
+padding:16px 18px;
+background:rgba(255,255,255,0.08);
+border:1px solid rgba(255,255,255,.2);
+border-radius:20px;
+backdrop-filter:blur(20px);
+box-shadow:0 15px 40px rgba(0,0,0,.45);
+opacity:0;
+}
+
+.note b{
+display:block;
+font-size:11px;
+letter-spacing:1px;
+color:var(--gold);
+margin-bottom:5px;
+text-transform:uppercase;
+}
+
+.note span{
+font-size:14px;
+line-height:1.5;
+}
+
+/* uçuş animasyonları */
+
+.n1{top:70px;left:70px;animation:fly1 1.6s forwards 1s;}
+.n2{top:70px;right:70px;animation:fly2 1.6s forwards 2.5s;}
+.n3{top:50%;right:80px;transform:translateY(-50%);animation:fly3 1.6s forwards 4s;}
+.n4{bottom:70px;right:70px;animation:fly4 1.6s forwards 5.5s;}
+.n5{bottom:70px;left:70px;animation:fly5 1.6s forwards 7s;}
+.n6{top:50%;left:80px;transform:translateY(-50%);animation:fly6 1.6s forwards 8.5s;}
+
+@keyframes fly1{from{opacity:0;transform:translate(-300px,-200px) rotate(-30deg);}to{opacity:1;transform:translate(0,0) rotate(0);}}
+@keyframes fly2{from{opacity:0;transform:translate(300px,-200px) rotate(30deg);}to{opacity:1;transform:translate(0,0) rotate(0);}}
+@keyframes fly3{from{opacity:0;transform:translate(400px,0) rotate(40deg);}to{opacity:1;transform:translate(0,-50%) rotate(0);}}
+@keyframes fly4{from{opacity:0;transform:translate(300px,200px) rotate(25deg);}to{opacity:1;transform:translate(0,0) rotate(0);}}
+@keyframes fly5{from{opacity:0;transform:translate(-300px,200px) rotate(-25deg);}to{opacity:1;transform:translate(0,0) rotate(0);}}
+@keyframes fly6{from{opacity:0;transform:translate(-400px,0) rotate(-40deg);}to{opacity:1;transform:translate(0,-50%) rotate(0);}}
+
+/* center */
+
+.center{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
+opacity:0;
+animation:centerShow 2s forwards 10s;
+}
+
+@keyframes centerShow{
+to{opacity:1}
+}
+
+/* heart */
+
+.heart{
+font-size:85px;
+animation:heartbeat 2s infinite;
+filter:drop-shadow(0 0 20px rgba(255,79,163,.8));
+}
+
+@keyframes heartbeat{
+0%{transform:scale(1)}
+50%{transform:scale(1.18)}
+100%{transform:scale(1)}
+}
+
+/* card */
+
+.card{
+margin-top:25px;
+max-width:520px;
+padding:35px;
+background:rgba(20,10,30,.45);
+border:1px solid rgba(255,255,255,.18);
+border-radius:30px;
+backdrop-filter:blur(30px);
+box-shadow:
+0 20px 60px rgba(0,0,0,.45),
+0 0 40px rgba(255,79,163,.15);
+}
+
+.card h1{
+font-size:2.2rem;
+margin-bottom:15px;
+background:linear-gradient(to right,#fff,#ff8cc8,#ffd7a8);
+-webkit-background-clip:text;
+color:transparent;
+}
+
+.card p{
+font-size:1.1rem;
+line-height:1.6;
+color:rgba(255,255,255,.9);
+}
+
+/* mobil */
+
+@media(max-width:700px){
+
+body{
+overflow:auto;
+height:auto;
+padding:40px 20px;
+}
+
+.note{
+position:relative;
+margin-bottom:15px;
+width:100%;
+opacity:0;
+animation:mobileNote 0.7s forwards;
+}
+
+.n1{animation-delay:0.3s}
+.n2{animation-delay:0.6s}
+.n3{animation-delay:0.9s}
+.n4{animation-delay:1.2s}
+.n5{animation-delay:1.5s}
+.n6{animation-delay:1.8s}
+
+@keyframes mobileNote{
+from{opacity:0;transform:translateY(30px)}
+to{opacity:1;transform:translateY(0)}
+}
+
+.center{
+position:relative;
+top:auto;
+left:auto;
+transform:none;
+margin-top:40px;
+opacity:1;
+animation:none;
+}
+
+.heart{
+font-size:70px;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="stars"></div>
+
+<div class="petals">
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+<span class="petal">🌸</span>
+</div>
+
+<div class="note n1"><b>Senin için</b><span>Varlığın her yere güzellik katıyor.</span></div>
+<div class="note n2"><b>Zarafetin</b><span>Gülüşünde dünyayı aydınlatan bir ışık var.</span></div>
+<div class="note n3"><b>Sen</b><span>Yanında olmak güzel.</span></div>
+<div class="note n4"><b>İyi ki</b><span>Hayata dokunuşun derin izler bırakıyor.</span></div>
+<div class="note n5"><b>Unutma</b><span>Sen çok özel ve çok değerlisin.</span></div>
+<div class="note n6"><b>Son not</b><span>İyi ki varsın, hep mutlu ol.</span></div>
+
+<div class="center">
+
+<div class="heart">❤️</div>
+
+<div class="card">
+
+<h1>Kadınlar Günün Kutlu Olsun</h1>
+
+<p>
+Hayata kattığın zarafet, gülüşündeki ışık ve kalbindeki o eşsiz güzellik…
+Dilerim bugün sana, ne kadar değerli ve özel olduğunu en güzel şekilde hissettirir.
+</p>
+
+</div>
+
+</div>
+
+</body>
+</html>
